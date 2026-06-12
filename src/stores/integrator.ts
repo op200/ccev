@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, toRaw } from 'vue'
 import { defineStore } from 'pinia'
 import { db } from '@/db'
 import type { Integrator, IntegratorExecutionResult, IntegratorContext } from '@/types/integrator'
@@ -75,12 +75,16 @@ export const useIntegratorStore = defineStore('integrator', () => {
   async function updateIntegrator(id: string, data: Partial<Integrator>) {
     const idx = integrators.value.findIndex((i) => i.id === id)
     if (idx >= 0) {
-      integrators.value[idx] = {
-        ...integrators.value[idx]!,
+      // 使用 toRaw 获取原始对象，避免 Vue 响应式 Proxy 导致 IndexedDB DataCloneError
+      const raw = toRaw(integrators.value[idx]!)
+      const updated = {
+        ...raw,
         ...data,
         updatedAt: Date.now(),
       }
-      await db.integrators.put(integrators.value[idx]!)
+      integrators.value[idx] = updated
+      // 传入 DB 前再次 toRaw 确保是纯对象（赋值后 Vue 可能重新包装）
+      await db.integrators.put(toRaw(updated) as Integrator)
     }
   }
 

@@ -16,15 +16,15 @@
 
 继承 `Dexie`，定义五张表：
 
-| 表名            | 类型                 | 主键                                      | 说明                              |
-| --------------- | -------------------- | ----------------------------------------- | --------------------------------- |
-| `settings`      | `AppSettings`        | `id` (固定 1)                             | 应用设置，仅一条记录              |
-| `klineCache`    | `KlineCacheEntry`    | `[exchangeId+symbol+timeframe]`           | K线缓存（v1 批量存储，v3 已移除） |
-| `klineData`     | `KlineCacheEntry`    | `[exchangeId+symbol+timeframe+timestamp]` | K线数据（v2 单条索引，v3 已移除） |
-| `klineBuckets`  | `KlineBucket`        | `[exchangeId+symbol+timeframe+monthKey]`  | K线数据桶（v3，嵌套字典按月分桶） |
-| `integrators`   | `Integrator`         | `id` (nanoid)                             | 用户整合器                        |
-| `channels`      | `ChannelConfig`      | `id` (nanoid)                             | 推送渠道配置                      |
-| `notifications` | `NotificationRecord` | `id` (nanoid)                             | 通知记录（v8 新增）               |
+| 表名            | 类型                 | 主键                                      | 说明                                                                          |
+| --------------- | -------------------- | ----------------------------------------- | ----------------------------------------------------------------------------- |
+| `settings`      | `AppSettings`        | `id` (固定 1)                             | 应用设置，仅一条记录                                                          |
+| `klineCache`    | `KlineCacheEntry`    | `[exchangeId+symbol+timeframe]`           | K线缓存（v1 批量存储，v3 已移除）                                             |
+| `klineData`     | `KlineCacheEntry`    | `[exchangeId+symbol+timeframe+timestamp]` | K线数据（v2 单条索引，v3 已移除）                                             |
+| `klineBuckets`  | `KlineBucket`        | `[exchangeId+symbol+timeframe+monthKey]`  | K线数据桶（v3，嵌套字典按月分桶）                                             |
+| `integrators`   | `Integrator`         | `id` (nanoid)                             | 用户整合器                                                                    |
+| `channels`      | `ChannelConfig`      | `id` (nanoid)                             | 推送渠道配置                                                                  |
+| `notifications` | `NotificationRecord` | `id` (nanoid)                             | 通知记录（v8 新增，`read` 为 number 0/1，因 IndexedDB 不支持 boolean 索引键） |
 
 ### 嵌套字典结构
 

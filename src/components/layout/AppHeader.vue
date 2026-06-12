@@ -16,13 +16,17 @@ const notificationStore = useNotificationStore()
 const isDark = computed(() => currentTheme.value === 'dark')
 
 const menuOptions = computed(() => {
-  const showDot = notificationStore.totalUnread > 0
+  const unread = notificationStore.totalUnread
   const dotStyle = {
     display: 'inline-block',
-    width: '7px',
-    height: '7px',
+    width: '6px',
+    height: '6px',
     borderRadius: '50%',
     backgroundColor: '#d03050',
+    marginLeft: '4px',
+    verticalAlign: 'middle',
+    position: 'relative' as const,
+    top: '-1px',
   }
   return [
     { label: t('nav.home'), key: 'home' },
@@ -31,10 +35,11 @@ const menuOptions = computed(() => {
     { label: t('nav.docs'), key: 'docs' },
     {
       label: () =>
-        h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px' } }, [
-          t('nav.notifications'),
-          showDot ? h('span', { style: dotStyle }) : null,
-        ]),
+        h(
+          'span',
+          { style: { display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' } },
+          [t('nav.notifications'), unread > 0 ? h('span', { style: dotStyle }) : null],
+        ),
       key: 'notifications',
     },
     { label: t('nav.settings'), key: 'settings' },
@@ -65,6 +70,7 @@ function toggleTheme() {
       </div>
       <div class="header-center">
         <NMenu
+          :key="notificationStore.totalUnread"
           :value="activeKey"
           mode="horizontal"
           :options="menuOptions"

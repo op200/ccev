@@ -96,6 +96,24 @@ class CCEVDatabase extends Dexie {
       channels: 'id',
       notifications: 'id, timestamp, type, source, read',
     })
+
+    // v9: 修复 notifications.read 字段类型 boolean→number（IndexedDB 不支持 boolean 索引键）
+    this.version(9)
+      .stores({
+        settings: 'id',
+        klineBuckets: '[exchangeId+symbol+timeframe+monthKey]',
+        integrators: 'id',
+        channels: 'id',
+        notifications: 'id, timestamp, type, source, read',
+      })
+      .upgrade(async (tx) => {
+        const all = await tx.table('notifications').toArray()
+        for (const n of all) {
+          if (typeof n.read === 'boolean') {
+            await tx.table('notifications').update(n.id, { read: n.read ? 1 : 0 })
+          }
+        }
+      })
   }
 
   /** 初始化设置（如果不存在则使用默认值） */
@@ -220,14 +238,14 @@ class CCEVDatabase extends Dexie {
 
   /** 标记通知为已读 */
   async markNotificationRead(id: string): Promise<void> {
-    await this.notifications.update(id, { read: true })
+    await this.notifications.update(id, { read: 1 })
   }
 
   /** 标记所有通知为已读 */
   async markAllNotificationsRead(): Promise<void> {
     const unread = await this.notifications.where('read').equals(0).toArray()
     for (const n of unread) {
-      await this.notifications.update(n.id, { read: true })
+      await this.notifications.update(n.id, { read: 1 })
     }
   }
 

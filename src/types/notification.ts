@@ -18,8 +18,11 @@ export interface NotificationRecord {
   title: string
   /** 通知内容 */
   content: string
-  /** 是否已读 */
-  read: boolean
+  /**
+   * 是否已读（0 = 未读，1 = 已读）
+   * 使用 number 而非 boolean，因为 IndexedDB 不支持 boolean 索引键
+   */
+  read: number
   /** 关联的整合器 ID（可选） */
   integratorId?: string
   /** 关联的渠道 ID（可选） */

@@ -51,7 +51,7 @@ export const useNotificationStore = defineStore('notification', () => {
       source: input.source,
       title: input.title,
       content: input.content,
-      read: false,
+      read: 0,
       integratorId: input.integratorId,
       channelId: input.channelId,
     }
@@ -69,7 +69,7 @@ export const useNotificationStore = defineStore('notification', () => {
       await db.markNotificationRead(id)
       const item = notifications.value.find((n) => n.id === id)
       if (item) {
-        item.read = true
+        item.read = 1
         if (totalUnread.value > 0) totalUnread.value--
       }
     } catch (err) {
@@ -82,7 +82,7 @@ export const useNotificationStore = defineStore('notification', () => {
     try {
       await db.markAllNotificationsRead()
       notifications.value.forEach((n) => {
-        n.read = true
+        n.read = 1
       })
       totalUnread.value = 0
     } catch (err) {
