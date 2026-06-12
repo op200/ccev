@@ -30,8 +30,9 @@ const nodePolyfills: Record<string, string> = {
   'node:stream': fileURLToPath(
     new URL('./node_modules/stream-browserify/index.js', import.meta.url),
   ),
-  util: fileURLToPath(new URL('./node_modules/util/util.js', import.meta.url)),
-  'node:util': fileURLToPath(new URL('./node_modules/util/util.js', import.meta.url)),
+  // util 映射到目录（非文件），因为 assert 等包使用 require('util/') 带尾斜杠
+  util: fileURLToPath(new URL('./node_modules/util', import.meta.url)),
+  'node:util': fileURLToPath(new URL('./node_modules/util', import.meta.url)),
   assert: fileURLToPath(new URL('./node_modules/assert/build/assert.js', import.meta.url)),
   'node:assert': fileURLToPath(new URL('./node_modules/assert/build/assert.js', import.meta.url)),
   crypto: fileURLToPath(new URL('./node_modules/crypto-browserify/index.js', import.meta.url)),
