@@ -32,6 +32,8 @@ export interface CacheSettings {
   ttl: number
   /** 数据库最大体积（字节），超过则自动清理 */
   maxDbSize: number
+  /** 通知保留天数 */
+  notificationTtlDays: number
 }
 
 /** 数据获取设置 */
@@ -60,6 +62,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     maxKlineCount: 1000,
     ttl: 7 * 24 * 60 * 60 * 1000, // 7 天
     maxDbSize: 500 * 1024 * 1024, // 500MB
+    notificationTtlDays: 30,
   },
   fetcher: {
     pageSize: 200,
@@ -70,4 +73,4 @@ export const DEFAULT_SETTINGS: AppSettings = {
 }
 
 /** 当前设置版本，用于迁移 */
-export const SETTINGS_VERSION = 1
+export const SETTINGS_VERSION = 2

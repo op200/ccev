@@ -15,28 +15,53 @@ const pkg = JSON.parse(
 )
 
 /**
- * Node.js → 浏览器 polyfill 映射。
- * ccxt 内部依赖这些 Node.js 模块，在浏览器中需重定向到对应 polyfill 或空桩。
+ * Node.js → 浏览器 polyfill / stub 映射。
+ * ccxt 同时使用裸标识符（如 'http'）和 node: 前缀（如 'node:http'），
+ * 两者都需映射到对应 polyfill 或 stub，避免 Vite 将 node: 模块 externalize。
  */
 const nodePolyfills: Record<string, string> = {
-  // 浏览器原生支持或有 npm polyfill
+  // ── 有浏览器 polyfill 的模块（裸标识符 + node: 前缀） ──
   buffer: fileURLToPath(new URL('./node_modules/buffer/index.js', import.meta.url)),
+  'node:buffer': fileURLToPath(new URL('./node_modules/buffer/index.js', import.meta.url)),
   events: fileURLToPath(new URL('./node_modules/events/events.js', import.meta.url)),
+  'node:events': fileURLToPath(new URL('./node_modules/events/events.js', import.meta.url)),
   inherits: fileURLToPath(new URL('./node_modules/inherits/inherits_browser.js', import.meta.url)),
   stream: fileURLToPath(new URL('./node_modules/stream-browserify/index.js', import.meta.url)),
+  'node:stream': fileURLToPath(
+    new URL('./node_modules/stream-browserify/index.js', import.meta.url),
+  ),
   util: fileURLToPath(new URL('./node_modules/util/util.js', import.meta.url)),
+  'node:util': fileURLToPath(new URL('./node_modules/util/util.js', import.meta.url)),
   assert: fileURLToPath(new URL('./node_modules/assert/build/assert.js', import.meta.url)),
+  'node:assert': fileURLToPath(new URL('./node_modules/assert/build/assert.js', import.meta.url)),
   crypto: fileURLToPath(new URL('./node_modules/crypto-browserify/index.js', import.meta.url)),
+  'node:crypto': fileURLToPath(
+    new URL('./node_modules/crypto-browserify/index.js', import.meta.url),
+  ),
   path: fileURLToPath(new URL('./node_modules/path-browserify/index.js', import.meta.url)),
+  'node:path': fileURLToPath(new URL('./node_modules/path-browserify/index.js', import.meta.url)),
   zlib: fileURLToPath(new URL('./node_modules/browserify-zlib/lib/index.js', import.meta.url)),
+  'node:zlib': fileURLToPath(
+    new URL('./node_modules/browserify-zlib/lib/index.js', import.meta.url),
+  ),
 
-  // 空桩：浏览器环境不需要（ccxt 内部 try/catch 兜底）
-  fs: fileURLToPath(new URL('./src/utils/node-stub.ts', import.meta.url)),
-  os: fileURLToPath(new URL('./src/utils/node-stub.ts', import.meta.url)),
-  http: fileURLToPath(new URL('./src/utils/node-stub.ts', import.meta.url)),
-  https: fileURLToPath(new URL('./src/utils/node-stub.ts', import.meta.url)),
-  net: fileURLToPath(new URL('./src/utils/node-stub.ts', import.meta.url)),
-  tls: fileURLToPath(new URL('./src/utils/node-stub.ts', import.meta.url)),
+  // ── 仅浏览器桩的模块（裸标识符 + node: 前缀） ──
+  fs: fileURLToPath(new URL('./src/utils/stubs/fs.ts', import.meta.url)),
+  'node:fs': fileURLToPath(new URL('./src/utils/stubs/fs.ts', import.meta.url)),
+  os: fileURLToPath(new URL('./src/utils/stubs/os.ts', import.meta.url)),
+  'node:os': fileURLToPath(new URL('./src/utils/stubs/os.ts', import.meta.url)),
+  http: fileURLToPath(new URL('./src/utils/stubs/http.ts', import.meta.url)),
+  'node:http': fileURLToPath(new URL('./src/utils/stubs/http.ts', import.meta.url)),
+  https: fileURLToPath(new URL('./src/utils/stubs/https.ts', import.meta.url)),
+  'node:https': fileURLToPath(new URL('./src/utils/stubs/https.ts', import.meta.url)),
+  net: fileURLToPath(new URL('./src/utils/stubs/net.ts', import.meta.url)),
+  'node:net': fileURLToPath(new URL('./src/utils/stubs/net.ts', import.meta.url)),
+  tls: fileURLToPath(new URL('./src/utils/stubs/tls.ts', import.meta.url)),
+  'node:tls': fileURLToPath(new URL('./src/utils/stubs/tls.ts', import.meta.url)),
+  url: fileURLToPath(new URL('./src/utils/stubs/url.ts', import.meta.url)),
+  'node:url': fileURLToPath(new URL('./src/utils/stubs/url.ts', import.meta.url)),
+
+  // ccxt 代理相关依赖
   'http-proxy-agent': fileURLToPath(new URL('./src/utils/node-stub.ts', import.meta.url)),
   'https-proxy-agent': fileURLToPath(new URL('./src/utils/node-stub.ts', import.meta.url)),
   'socks-proxy-agent': fileURLToPath(new URL('./src/utils/node-stub.ts', import.meta.url)),
@@ -70,25 +95,19 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
 
-  optimizeDeps: {
-    // 将 ccxt 纳入预构建，配合 resolve.alias 使用 polyfill
-  },
+  server: {},
 
   build: {
+    // ccxt (~5.4MB)、monaco-editor (~4.1MB)、ts.worker (~6.9MB) 本身体量巨大，
+    // 无法再拆分，上调阈值避免对预期大 chunk 产生警告
+    chunkSizeWarningLimit: 7000,
     rolldownOptions: {
-      external: [
-        // ccxt CJS 静态依赖：避免 rolldown 尝试转换 CJS 模块
-        'protobufjs/minimal.js',
-        'protobufjs',
-      ],
+      output: {
+        // 启用 Rolldown 代码分割，将动态导入的模块拆分为独立 chunk
+        codeSplitting: true,
+      },
     },
   },
-
-  ssr: {
-    noExternal: ['ccxt'],
-  },
-
-  server: {},
 
   base: process.env.NODE_ENV === 'production' ? '/ccev/' : '/',
 })

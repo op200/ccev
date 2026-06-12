@@ -8,6 +8,7 @@
 - K线缓存（嵌套字典按月分桶）
 - 整合器配置
 - 推送渠道配置
+- 通知记录
 
 ## 当前实现
 
@@ -15,14 +16,15 @@
 
 继承 `Dexie`，定义五张表：
 
-| 表名           | 类型              | 主键                                      | 说明                              |
-| -------------- | ----------------- | ----------------------------------------- | --------------------------------- |
-| `settings`     | `AppSettings`     | `id` (固定 1)                             | 应用设置，仅一条记录              |
-| `klineCache`   | `KlineCacheEntry` | `[exchangeId+symbol+timeframe]`           | K线缓存（v1 批量存储，v3 已移除） |
-| `klineData`    | `KlineCacheEntry` | `[exchangeId+symbol+timeframe+timestamp]` | K线数据（v2 单条索引，v3 已移除） |
-| `klineBuckets` | `KlineBucket`     | `[exchangeId+symbol+timeframe+monthKey]`  | K线数据桶（v3，嵌套字典按月分桶） |
-| `integrators`  | `Integrator`      | `id` (nanoid)                             | 用户整合器                        |
-| `channels`     | `ChannelConfig`   | `id` (nanoid)                             | 推送渠道配置                      |
+| 表名            | 类型                 | 主键                                      | 说明                              |
+| --------------- | -------------------- | ----------------------------------------- | --------------------------------- |
+| `settings`      | `AppSettings`        | `id` (固定 1)                             | 应用设置，仅一条记录              |
+| `klineCache`    | `KlineCacheEntry`    | `[exchangeId+symbol+timeframe]`           | K线缓存（v1 批量存储，v3 已移除） |
+| `klineData`     | `KlineCacheEntry`    | `[exchangeId+symbol+timeframe+timestamp]` | K线数据（v2 单条索引，v3 已移除） |
+| `klineBuckets`  | `KlineBucket`        | `[exchangeId+symbol+timeframe+monthKey]`  | K线数据桶（v3，嵌套字典按月分桶） |
+| `integrators`   | `Integrator`         | `id` (nanoid)                             | 用户整合器                        |
+| `channels`      | `ChannelConfig`      | `id` (nanoid)                             | 推送渠道配置                      |
+| `notifications` | `NotificationRecord` | `id` (nanoid)                             | 通知记录（v8 新增）               |
 
 ### 嵌套字典结构
 
@@ -38,18 +40,24 @@ exchangeId → symbol → timeframe → monthKey → { timestamp → OHLCV }
 
 ### 核心方法
 
-| 方法                          | 功能                                                |
-| ----------------------------- | --------------------------------------------------- |
-| `initSettings()`              | 首次初始化默认设置，已有则检查版本迁移              |
-| `migrateSettings(old)`        | 基于版本号逐步迁移，兼容部分合并，不兼容丢弃        |
-| `getStorageUsage()`           | 返回 `{ used, quota }`（利用 Storage API estimate） |
-| `cleanExpiredKlineCache(ttl)` | 清理超过 TTL 未更新的 K线桶（整桶删除）             |
-| `clearKlineData()`            | 清空所有 K线桶数据                                  |
-| `putKlineCandles(...)`        | 写入蜡烛到嵌套字典桶，直接覆盖，事务保证原子性      |
-| `getKlineCandles(...)`        | 查询指定时间范围蜡烛，跨月桶合并，按时间戳升序      |
-| `hasKlineBefore(...)`         | 检查是否存在更早的数据（用于 hasMore 判断）         |
-| `exportData()`                | 导出设置、整合器、渠道（不含 K线）为 JSON           |
-| `importData(json)`            | 导入 JSON 并验证数据结构                            |
+| 方法                           | 功能                                                |
+| ------------------------------ | --------------------------------------------------- |
+| `initSettings()`               | 首次初始化默认设置，已有则检查版本迁移              |
+| `migrateSettings(old)`         | 基于版本号逐步迁移，兼容部分合并，不兼容丢弃        |
+| `getStorageUsage()`            | 返回 `{ used, quota }`（利用 Storage API estimate） |
+| `cleanExpiredKlineCache(ttl)`  | 清理超过 TTL 未更新的 K线桶（整桶删除）             |
+| `clearKlineData()`             | 清空所有 K线桶数据                                  |
+| `putKlineCandles(...)`         | 写入蜡烛到嵌套字典桶，直接覆盖，事务保证原子性      |
+| `getKlineCandles(...)`         | 查询指定时间范围蜡烛，跨月桶合并，按时间戳升序      |
+| `hasKlineBefore(...)`          | 检查是否存在更早的数据（用于 hasMore 判断）         |
+| `exportData()`                 | 导出设置、整合器、渠道、通知（不含 K线）为 JSON     |
+| `importData(json)`             | 导入 JSON 并验证数据结构                            |
+| `putNotification(n)`           | 写入一条通知记录                                    |
+| `getNotifications(...)`        | 分页查询通知（支持按字段排序），按时间戳降序默认    |
+| `cleanExpiredNotifications(d)` | 清理超过指定天数的通知记录                          |
+| `clearNotifications()`         | 清空所有通知记录                                    |
+| `markNotificationRead(id)`     | 标记单条通知为已读                                  |
+| `markAllNotificationsRead()`   | 标记全部通知为已读                                  |
 
 ### 版本管理
 
@@ -57,6 +65,7 @@ exchangeId → symbol → timeframe → monthKey → { timestamp → OHLCV }
   - v1：初始版本，`klineCache` 按 `[exchangeId+symbol+timeframe]` 批量存储
   - v2：新增 `klineData` 按 `[exchangeId+symbol+timeframe+timestamp]` 单条索引
   - v3：废弃 `klineCache`/`klineData`，新增 `klineBuckets` 嵌套字典按月分桶，迁移时清空旧 K线缓存
+- v8：新增 `notifications` 表，索引 `id, timestamp, type, source, read`
 - `SETTINGS_VERSION` 仅管理设置结构的版本迁移
 - 每次结构变更在 `migrateSettings` 中添加对应版本的条件分支
 

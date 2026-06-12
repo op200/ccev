@@ -1,25 +1,45 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { NLayoutHeader, NMenu, NSpace, NSwitch, NIcon, NText } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
+import { useNotificationStore } from '@/stores/notification'
 import { currentTheme, applyTheme } from '@/composables/useTheme'
 
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const settingsStore = useSettingsStore()
+const notificationStore = useNotificationStore()
 
 const isDark = computed(() => currentTheme.value === 'dark')
 
-const menuOptions = computed(() => [
-  { label: t('nav.home'), key: 'home' },
-  { label: t('nav.chart'), key: 'chart' },
-  { label: t('nav.integrator'), key: 'integrator' },
-  { label: t('nav.docs'), key: 'docs' },
-  { label: t('nav.settings'), key: 'settings' },
-])
+const menuOptions = computed(() => {
+  const showDot = notificationStore.totalUnread > 0
+  const dotStyle = {
+    display: 'inline-block',
+    width: '7px',
+    height: '7px',
+    borderRadius: '50%',
+    backgroundColor: '#d03050',
+  }
+  return [
+    { label: t('nav.home'), key: 'home' },
+    { label: t('nav.chart'), key: 'chart' },
+    { label: t('nav.integrator'), key: 'integrator' },
+    { label: t('nav.docs'), key: 'docs' },
+    {
+      label: () =>
+        h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px' } }, [
+          t('nav.notifications'),
+          showDot ? h('span', { style: dotStyle }) : null,
+        ]),
+      key: 'notifications',
+    },
+    { label: t('nav.settings'), key: 'settings' },
+  ]
+})
 
 const activeKey = computed(() => {
   const name = String(route.name || 'home')

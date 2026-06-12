@@ -9,6 +9,7 @@ import type {
 } from '@/types/kline'
 import type { Integrator } from '@/types/integrator'
 import type { ChannelConfig } from '@/types/channel'
+import type { NotificationRecord } from '@/types/notification'
 import { SETTINGS_VERSION, DEFAULT_SETTINGS } from '@/types/settings'
 import { toMonthKey } from '@/utils/format'
 
@@ -26,6 +27,8 @@ class CCEVDatabase extends Dexie {
   integrators!: Table<Integrator, string>
   /** 渠道配置表 */
   channels!: Table<ChannelConfig, string>
+  /** 通知记录表 */
+  notifications!: Table<NotificationRecord, string>
 
   constructor() {
     super('CCEVDatabase')
@@ -84,6 +87,15 @@ class CCEVDatabase extends Dexie {
       integrators: 'id',
       channels: 'id',
     })
+
+    // v8: 新增 notifications 表
+    this.version(8).stores({
+      settings: 'id',
+      klineBuckets: '[exchangeId+symbol+timeframe+monthKey]',
+      integrators: 'id',
+      channels: 'id',
+      notifications: 'id, timestamp, type, source, read',
+    })
   }
 
   /** 初始化设置（如果不存在则使用默认值） */
@@ -117,6 +129,14 @@ class CCEVDatabase extends Dexie {
         ...settings,
         version: SETTINGS_VERSION,
         channels: settings.channels || [],
+      }
+    }
+
+    if (old.version < 2) {
+      // v2: 新增 notificationTtlDays
+      settings.cache = {
+        ...settings.cache,
+        notificationTtlDays: settings.cache?.notificationTtlDays ?? 30,
       }
     }
 
@@ -154,6 +174,61 @@ class CCEVDatabase extends Dexie {
   /** 清空所有 K线数据 */
   async clearKlineData(): Promise<void> {
     await this.klineBuckets.clear()
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 通知记录操作
+  // ═══════════════════════════════════════════════════════════
+
+  /** 写入一条通知记录 */
+  async putNotification(notification: NotificationRecord): Promise<void> {
+    await this.notifications.put(notification)
+  }
+
+  /** 分页查询通知记录（按时间戳降序） */
+  async getNotifications(
+    offset: number,
+    limit: number,
+    sortField?: string,
+    sortOrder?: 'ascend' | 'descend',
+  ): Promise<{ items: NotificationRecord[]; total: number }> {
+    const collection = this.notifications.orderBy(
+      sortField === 'type' || sortField === 'source' || sortField === 'read'
+        ? sortField
+        : 'timestamp',
+    )
+    const orderedCollection = sortOrder === 'ascend' ? collection : collection.reverse()
+    const total = await this.notifications.count()
+    const items = await orderedCollection.offset(offset).limit(limit).toArray()
+    return { items, total }
+  }
+
+  /** 清理过期的通知记录（超过 ttl 天） */
+  async cleanExpiredNotifications(ttlDays: number): Promise<number> {
+    const cutoff = Date.now() - ttlDays * 24 * 60 * 60 * 1000
+    const expired = await this.notifications.where('timestamp').below(cutoff).toArray()
+    if (expired.length > 0) {
+      await this.notifications.bulkDelete(expired.map((n) => n.id))
+    }
+    return expired.length
+  }
+
+  /** 清空所有通知记录 */
+  async clearNotifications(): Promise<void> {
+    await this.notifications.clear()
+  }
+
+  /** 标记通知为已读 */
+  async markNotificationRead(id: string): Promise<void> {
+    await this.notifications.update(id, { read: true })
+  }
+
+  /** 标记所有通知为已读 */
+  async markAllNotificationsRead(): Promise<void> {
+    const unread = await this.notifications.where('read').equals(0).toArray()
+    for (const n of unread) {
+      await this.notifications.update(n.id, { read: true })
+    }
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -321,12 +396,14 @@ class CCEVDatabase extends Dexie {
     const settings = await this.settings.get(1)
     const integrators = await this.integrators.toArray()
     const channels = await this.channels.toArray()
+    const notifications = await this.notifications.toArray()
     const data = {
       version: SETTINGS_VERSION,
       exportedAt: Date.now(),
       settings,
       integrators,
       channels,
+      notifications,
     }
     return JSON.stringify(data, null, 2)
   }
@@ -347,6 +424,10 @@ class CCEVDatabase extends Dexie {
     if (data.channels) {
       await this.channels.clear()
       await this.channels.bulkPut(data.channels)
+    }
+    if (data.notifications) {
+      await this.notifications.clear()
+      await this.notifications.bulkPut(data.notifications)
     }
   }
 }

@@ -25,19 +25,19 @@ import {
   NGrid,
   NResult,
   useMessage,
-  useNotification,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useIntegratorStore } from '@/stores/integrator'
 import { useSettingsStore } from '@/stores/settings'
+import { useNotificationStore } from '@/stores/notification'
 import CodeEditor from '@/components/editor/CodeEditor.vue'
 import type { Integrator, IntegratorContext } from '@/types/integrator'
 
 const { t } = useI18n()
 const message = useMessage()
-const notification = useNotification()
 const integratorStore = useIntegratorStore()
 const settingsStore = useSettingsStore()
+const notificationStore = useNotificationStore()
 
 // ============================================================
 // 弹窗状态
@@ -239,6 +239,24 @@ async function handleToggle(id: string, enabled: boolean) {
 }
 
 // ============================================================
+// 通知测试
+// ============================================================
+
+function handleNotificationTest() {
+  const now = new Date().toLocaleString()
+  const title = t('integrator.notificationTestTitle')
+  const content = t('integrator.notificationTestContent', { time: now })
+  // 持久化到 IndexedDB 通知历史，导航栏显示未读红点
+  notificationStore.sendNotification({
+    type: 'info',
+    source: 'system',
+    title,
+    content,
+  })
+  message.success(t('integrator.notificationTestSent'))
+}
+
+// ============================================================
 // 运行整合器
 // ============================================================
 
@@ -273,13 +291,13 @@ async function handleRun(integrator: Integrator) {
 onMounted(() => {
   integratorStore.loadIntegrators()
 
-  // 注入 WebUI 通知回调：当整合器调用 api.sendToAllChannels 时弹窗
+  // 注入通知回调：整合器调用 api.sendToAllChannels 时持久化到 DB，导航栏显示未读红点
   integratorStore.setNotificationHandler((title: string, content: string) => {
-    notification.info({
+    notificationStore.sendNotification({
+      type: 'info',
+      source: 'integrator',
       title,
       content,
-      duration: 8000,
-      closable: true,
     })
   })
 })
@@ -292,6 +310,9 @@ onMounted(() => {
       <div class="page-header">
         <h1 class="page-title">{{ t('integrator.title') }}</h1>
         <NSpace>
+          <NButton secondary @click="handleNotificationTest">
+            {{ t('integrator.notificationTest') }}
+          </NButton>
           <NButton type="primary" @click="openCreate">
             {{ t('integrator.create') }}
           </NButton>

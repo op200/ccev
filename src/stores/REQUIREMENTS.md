@@ -128,6 +128,26 @@ klineBuckets: [exchangeId+symbol+timeframe+monthKey] → { candles: Record<times
 
 ---
 
+### `useNotificationStore` (`stores/notification.ts`)
+
+**状态：** `notifications`, `total`, `loading`, `unreadCount`, `pageSize`
+
+**方法：**
+| 方法 | 说明 |
+|------|------|
+| `loadNotifications(offset, sortField?, sortOrder?)` | 分页加载通知列表，支持排序 |
+| `sendNotification(input)` | 发送一条通知（写入 IndexedDB） |
+| `markRead(id)` | 标记单条通知为已读 |
+| `markAllRead()` | 标记全部通知为已读 |
+| `clearAll()` | 清空所有通知记录 |
+| `cleanExpired(ttlDays)` | 清理超过指定天数的过期通知 |
+
+**通知类型：** `info` / `success` / `warning` / `error`
+
+**通知来源：** `integrator` / `system` / `channel`
+
+---
+
 ### `useCounterStore` (`stores/counter.ts`)
 
 示例 Store（模板生成），后续可能移除。

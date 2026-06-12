@@ -14,12 +14,14 @@ import {
 } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
+import { useNotificationStore } from '@/stores/notification'
 import { initTheme, naiveTheme } from '@/composables/useTheme'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppContent from '@/components/layout/AppContent.vue'
 
 const { locale } = useI18n()
 const settingsStore = useSettingsStore()
+const notificationStore = useNotificationStore()
 
 // NaiveUI 与 vue-i18n 语言映射
 function getNaiveLocale() {
@@ -33,6 +35,8 @@ function getNaiveDateLocale() {
 onMounted(async () => {
   await settingsStore.init()
   initTheme()
+  // DB 就绪后立即查询全局未读通知数，确保导航栏红点刷新不丢失
+  notificationStore.fetchTotalUnread()
 })
 </script>
 

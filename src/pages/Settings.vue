@@ -30,6 +30,7 @@ import {
 import type { DataTableColumns, UploadFileInfo } from 'naive-ui'
 import { useSettingsStore } from '@/stores/settings'
 import { useExchangeStore } from '@/stores/exchange'
+import { useNotificationStore } from '@/stores/notification'
 import { SUPPORTED_LOCALES, LOCALE_LABELS } from '@/i18n'
 import { TIMEFRAME_LABELS } from '@/utils/format'
 import { formatBytes } from '@/utils/format'
@@ -42,6 +43,7 @@ const { t } = useI18n()
 const message = useMessage()
 const settingsStore = useSettingsStore()
 const exchangeStore = useExchangeStore()
+const notificationStore = useNotificationStore()
 
 // 主题选项
 const themeOptions = computed(() => [
@@ -268,6 +270,12 @@ async function handleClearKlineCache() {
   message.success(t('settings.clearKlineCacheSuccess'))
 }
 
+/** 清空所有通知 */
+async function handleClearNotifications() {
+  await notificationStore.clearAll()
+  message.success(t('settings.clearNotificationsSuccess'))
+}
+
 // 交易所切换
 function isExchangeEnabled(id: string): boolean {
   return settingsStore.enabledExchanges.includes(id)
@@ -414,6 +422,15 @@ onMounted(async () => {
                 @update:value="(v: number | null) => v && settingsStore.updateCacheSettings({ maxDbSize: v * 1024 * 1024 })"
               />
             </NFormItem>
+            <NFormItem :label="t('settings.notificationTtl')">
+              <NInputNumber
+                :value="settingsStore.cacheSettings.notificationTtlDays"
+                :min="1"
+                :max="365"
+                style="width: 100%"
+                @update:value="(v: number | null) => v !== null && settingsStore.updateCacheSettings({ notificationTtlDays: v })"
+              />
+            </NFormItem>
           </NForm>
         </NCard>
       </NTabPane>
@@ -488,6 +505,14 @@ onMounted(async () => {
                   </NButton>
                 </template>
                 {{ t('settings.clearKlineCacheConfirm') }}
+              </NPopconfirm>
+              <NPopconfirm @positive-click="handleClearNotifications">
+                <template #trigger>
+                  <NButton size="small" type="error" style="margin-top: 8px; margin-left: 8px">
+                    {{ t('settings.clearNotifications') }}
+                  </NButton>
+                </template>
+                {{ t('settings.clearNotificationsConfirm') }}
               </NPopconfirm>
             </div>
 
