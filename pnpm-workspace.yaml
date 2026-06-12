@@ -1,6 +1,6 @@
 allowBuilds:
   ccxt: true
-  esbuild: set this to true or false
+  esbuild: true
 
 minimumReleaseAgeExclude:
   - '@types/node@25.9.3'
