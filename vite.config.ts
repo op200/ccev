@@ -76,7 +76,6 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       external: [
-        ...Object.keys(nodePolyfills),
         // ccxt CJS 静态依赖：避免 rolldown 尝试转换 CJS 模块
         'protobufjs/minimal.js',
         'protobufjs',
