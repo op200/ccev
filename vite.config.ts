@@ -22,6 +22,7 @@ const nodePolyfills: Record<string, string> = {
   // 浏览器原生支持或有 npm polyfill
   buffer: fileURLToPath(new URL('./node_modules/buffer/index.js', import.meta.url)),
   events: fileURLToPath(new URL('./node_modules/events/events.js', import.meta.url)),
+  inherits: fileURLToPath(new URL('./node_modules/inherits/inherits_browser.js', import.meta.url)),
   stream: fileURLToPath(new URL('./node_modules/stream-browserify/index.js', import.meta.url)),
   util: fileURLToPath(new URL('./node_modules/util/util.js', import.meta.url)),
   assert: fileURLToPath(new URL('./node_modules/assert/build/assert.js', import.meta.url)),

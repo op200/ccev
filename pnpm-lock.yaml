@@ -47,6 +47,9 @@ importers:
       highlight.js:
         specifier: ^11.11.1
         version: 11.11.1
+      inherits:
+        specifier: ^2.0.4
+        version: 2.0.4
       lightweight-charts:
         specifier: ^5.2.0
         version: 5.2.0

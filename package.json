@@ -24,6 +24,7 @@
     "dexie": "^4.4.3",
     "events": "^3.3.0",
     "highlight.js": "^11.11.1",
+    "inherits": "^2.0.4",
     "lightweight-charts": "^5.2.0",
     "long": "^5.3.2",
     "monaco-editor": "^0.55.1",
